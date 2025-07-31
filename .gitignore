@@ -2,3 +2,4 @@
 .mypy_cache/
 diabetes-data/
 config.json
+mlruns/

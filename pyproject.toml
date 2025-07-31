@@ -10,6 +10,11 @@ python = "^3.10"
 azure-ai-ml = "^1.28.1"
 azure-identity = "^1.23.1"
 azure-cli = "^2.75.0"
+pandas = "^2.3.1"
+pandas-stubs = "^2.3.0.250703"
+mlflow = "^3.1.4"
+scikit-learn = "^1.7.1"
+matplotlib = "^3.10.3"
 
 
 [build-system]
