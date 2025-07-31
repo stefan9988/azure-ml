@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "azure-practice"
+version = "0.1.0"
+description = ""
+authors = ["stefan dragicevic <stefan.dragicevic@vegait.rs>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+azure-ai-ml = "^1.28.1"
+azure-identity = "^1.23.1"
+azure-cli = "^2.75.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
