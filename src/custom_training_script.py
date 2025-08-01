@@ -13,7 +13,7 @@ def main(args):
     with mlflow.start_run():
         df = get_data(args.training_data)
         X_train, X_test, y_train, y_test = split_data(df)
-        model = train_model(X_train, y_train)
+        model = train_model(X_train, y_train, args.C, args.penalty)
         eval_model(model, X_test, y_test)
 
 
@@ -34,10 +34,14 @@ def split_data(df):
 
     return X_train, X_test, y_train, y_test
 
-def train_model(X_train, y_train):
+def train_model(X_train, y_train, C=1.0, penalty='l2'):
     print("Training model...")
     mlflow.sklearn.autolog()
-    model = LogisticRegression(solver="liblinear").fit(X_train, y_train)
+    model = LogisticRegression(
+        solver="liblinear",
+        C=C,
+        penalty=penalty,
+        ).fit(X_train, y_train)
     return model
 
 
@@ -57,8 +61,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     # add arguments
-    parser.add_argument("--training_data", dest='training_data',
-                        type=str)
+    parser.add_argument("--training_data", dest='training_data', type=str)
+    parser.add_argument("--C", dest='C', type=float, default=1.0,
+                        help="Inverse of regularization strength; smaller values specify stronger regularization.")
+    parser.add_argument("--penalty", dest='penalty', type=str, default='l2',
+                        help="Used to specify the norm used in the penalization. 'l1' for Lasso, 'l2' for Ridge.")
     
     args = parser.parse_args()
 

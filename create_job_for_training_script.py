@@ -2,7 +2,10 @@
 from azure.ai.ml import command
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input
-from azure.ai.ml.entities import Environment
+from azure.ai.ml.entities import Environment, Data
+from azure.ai.ml.constants import AssetTypes
+from azure.ai.ml.sweep import Uniform, Choice
+from azure.ai.ml.sweep import BanditPolicy
 
 try:
     credential = DefaultAzureCredential()
@@ -24,9 +27,6 @@ except Exception:
 
     ml_client.environments.create_or_update(custom_env)
 
-from azure.ai.ml.entities import Data
-from azure.ai.ml.constants import AssetTypes
-
 try:
     data_asset = ml_client.data.get(name="diabetes-file", version="1")
 except Exception:
@@ -42,12 +42,17 @@ except Exception:
 
 job = command(
     code="./src",
-    command="python custom_training_script.py --training_data ${{inputs.input_data}}",
+    command="""python custom_training_script.py \
+        --training_data ${{inputs.input_data}} \
+        --C ${{inputs.C}} \
+        --penalty ${{inputs.penalty}}""",
     inputs={
         "input_data": Input(
             type="uri_file",
             path="azureml:diabetes-file:1"
-        )        
+        ),
+        "C": Input(type="number", default=1.0),
+        "penalty": Input(type="string", default="l2"),
     },
     environment="sklearn-env-custom-training:1",
     compute="aml-cluster",
@@ -56,3 +61,39 @@ job = command(
     )
 
 returned_job = ml_client.create_or_update(job)
+
+command_job_for_sweep = command(
+    code="./src",
+    command="""python custom_training_script.py \
+        --training_data ${{inputs.input_data}} \
+        --C ${{inputs.C}} \
+        --penalty ${{inputs.penalty}}""",
+    inputs={
+        "input_data": Input(
+            type="uri_file",
+            path="azureml:diabetes-file:1"
+        ),
+        "C": Uniform(0.1, 10.0),
+        "penalty": Choice(["l1", "l2"])
+    },
+    environment="sklearn-env-custom-training:1",
+    compute="aml-cluster",
+    display_name="diabetes-hparam-sweep",
+    experiment_name="sweep-diabetes"
+)
+
+sweep_job = command_job_for_sweep.sweep(
+    sampling_algorithm="random",
+    primary_metric="training_accuracy_score",
+    goal="Maximize",
+)
+
+sweep_job.experiment_name="sweep-diabetes"
+sweep_job.set_limits(max_total_trials=10, timeout=7200)
+sweep_job.early_termination = BanditPolicy(
+    evaluation_interval=3,
+    slack_factor=0.2,
+    delay_evaluation=4
+)
+
+returned_sweep_job = ml_client.create_or_update(sweep_job)
